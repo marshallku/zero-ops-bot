@@ -49,5 +49,5 @@ internal/
 | DISCORD_APP_ID | Yes | Application ID |
 | DISCORD_GUILD_ID | No | Guild ID for instant command updates (omit for global) |
 | N8N_WEBHOOK_URL | Yes | n8n webhook endpoint |
-| N8N_WEBHOOK_SECRET | No | Optional webhook auth header |
+| N8N_WEBHOOK_SECRET | No | Webhook auth (sent as `x-discord-api-key` header) |
 | ALLOWED_CHANNELS | No | Comma-separated channel IDs for message forwarding |

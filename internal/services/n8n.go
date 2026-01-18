@@ -59,7 +59,7 @@ func (c *N8nClient) TriggerWebhook(ctx context.Context, payload WebhookPayload) 
 
     req.Header.Set("Content-Type", "application/json")
     if c.webhookSecret != "" {
-        req.Header.Set("X-Webhook-Secret", c.webhookSecret)
+        req.Header.Set("x-discord-api-key", c.webhookSecret)
     }
 
     resp, err := c.httpClient.Do(req)
