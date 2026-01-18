@@ -11,12 +11,22 @@ import (
 var Infra = &Command{
     Definition: &discordgo.ApplicationCommand{
         Name:        "infra",
-        Description: "Trigger infrastructure workflow via n8n",
+        Description: "Send a prompt to infrastructure AI via n8n",
+        Options: []*discordgo.ApplicationCommandOption{
+            {
+                Type:        discordgo.ApplicationCommandOptionString,
+                Name:        "prompt",
+                Description: "What do you want to do?",
+                Required:    true,
+            },
+        },
     },
     Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate, n8n *services.N8nClient) {
         s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
             Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
         })
+
+        prompt := i.ApplicationCommandData().Options[0].StringValue()
 
         ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
         defer cancel()
@@ -24,6 +34,7 @@ var Infra = &Command{
         result, err := n8n.TriggerWebhook(ctx, services.WebhookPayload{
             Type:      "command",
             Command:   "infra",
+            Content:   prompt,
             UserID:    i.Member.User.ID,
             ChannelID: i.ChannelID,
         })
