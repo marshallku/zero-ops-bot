@@ -5,6 +5,7 @@ import (
     "context"
     "encoding/json"
     "fmt"
+    "io"
     "net/http"
     "time"
 )
@@ -72,13 +73,15 @@ func (c *N8nClient) TriggerWebhook(ctx context.Context, payload WebhookPayload) 
         return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
     }
 
-    var result WebhookResponse
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        // Non-JSON response is okay for some workflows
-        return &WebhookResponse{Success: true}, nil
+    respBody, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("read response: %w", err)
     }
 
-    return &result, nil
+    return &WebhookResponse{
+        Success: true,
+        Message: string(respBody),
+    }, nil
 }
 
 func (c *N8nClient) TriggerWebhookAsync(payload WebhookPayload) {
