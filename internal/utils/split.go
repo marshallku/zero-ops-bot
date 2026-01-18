@@ -1,6 +1,6 @@
 package utils
 
-const MaxMessageLength = 2000
+const MaxMessageLength = 1800
 
 func SplitMessage(content string) []string {
     if len(content) <= MaxMessageLength {
@@ -13,9 +13,9 @@ func SplitMessage(content string) []string {
     for len(runes) > 0 {
         end := min(MaxMessageLength, len(runes))
 
-        // Try to split at newline
+        // Split at newline if found
         if end < len(runes) {
-            for i := end - 1; i > end-200 && i > 0; i-- {
+            for i := end - 1; i > 0; i-- {
                 if runes[i] == '\n' {
                     end = i + 1
                     break
