@@ -6,6 +6,7 @@ import (
 
     "github.com/bwmarrin/discordgo"
     "github.com/marshall/zero-ops-bot/internal/services"
+    "github.com/marshall/zero-ops-bot/internal/utils"
 )
 
 var CheckHealth = &Command{
@@ -38,8 +39,15 @@ var CheckHealth = &Command{
             content = "Health check completed"
         }
 
+        chunks := utils.SplitMessage(content)
         s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-            Content: &content,
+            Content: &chunks[0],
         })
+
+        for _, chunk := range chunks[1:] {
+            s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+                Content: chunk,
+            })
+        }
     },
 }
