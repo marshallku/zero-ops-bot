@@ -16,9 +16,12 @@ go run ./cmd/bot
 go build -o bot ./cmd/bot
 ```
 
-## Architecture
+## Documentation
 
-See [docs/architecture.md](docs/architecture.md) for detailed design decisions.
+- [docs/architecture.md](docs/architecture.md) - Design decisions and structure
+- [docs/working-guide.md](docs/working-guide.md) - Development workflow and profiles
+
+## Architecture
 
 ### Key Decisions
 

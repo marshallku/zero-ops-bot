@@ -32,4 +32,5 @@ docker run --env-file .env zero-ops-bot
 ## Documentation
 
 - [Architecture](docs/architecture.md) - Design decisions and structure
+- [Working Guide](docs/working-guide.md) - Development workflow and profiles
 - [CLAUDE.md](CLAUDE.md) - Quick reference for development
