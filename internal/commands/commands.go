@@ -26,4 +26,5 @@ func GetDefinitions() []*discordgo.ApplicationCommand {
 
 func init() {
     Register(CheckHealth)
+    Register(Infra)
 }

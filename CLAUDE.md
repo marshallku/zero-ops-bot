@@ -24,7 +24,7 @@ See [docs/architecture.md](docs/architecture.md) for detailed design decisions.
 
 1. **Go over Node.js** - Lower memory footprint, single binary deployment
 2. **n8n handles SSH** - Bot only triggers webhooks, SSH credentials stay in n8n
-3. **Guild-scoped commands** - Instant updates, suitable for home lab
+3. **Global commands by default** - Guild ID optional, omit for global registration
 
 ### Project Structure
 
@@ -44,7 +44,7 @@ internal/
 |----------|----------|-------------|
 | DISCORD_TOKEN | Yes | Bot token from Discord Developer Portal |
 | DISCORD_APP_ID | Yes | Application ID |
-| DISCORD_GUILD_ID | No | Guild ID for guild-scoped commands |
+| DISCORD_GUILD_ID | No | Guild ID for instant command updates (omit for global) |
 | N8N_WEBHOOK_URL | Yes | n8n webhook endpoint |
 | N8N_WEBHOOK_SECRET | No | Optional webhook auth header |
 | ALLOWED_CHANNELS | No | Comma-separated channel IDs for message forwarding |
