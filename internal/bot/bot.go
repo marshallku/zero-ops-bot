@@ -38,6 +38,7 @@ func (b *Bot) Start() error {
 
     b.session.AddHandler(handlers.NewInteractionHandler(n8nClient))
     b.session.AddHandler(handlers.NewMessageHandler(n8nClient, b.config.AllowedChannels))
+    b.session.AddHandler(handlers.NewMentionHandler(n8nClient))
 
     b.session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
         log.Printf("Logged in as %s", r.User.String())

@@ -14,6 +14,13 @@ func NewMessageHandler(n8n *services.N8nClient, allowedChannels []string) func(s
             return
         }
 
+        // Skip if bot is mentioned (handled by mention handler)
+        for _, mention := range m.Mentions {
+            if mention.ID == s.State.User.ID {
+                return
+            }
+        }
+
         // Check channel filter
         if len(allowedChannels) > 0 && !slices.Contains(allowedChannels, m.ChannelID) {
             return
