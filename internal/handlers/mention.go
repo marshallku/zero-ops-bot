@@ -7,6 +7,7 @@ import (
     "time"
 
     "github.com/bwmarrin/discordgo"
+    "github.com/marshall/zero-ops-bot/internal/commands"
     "github.com/marshall/zero-ops-bot/internal/services"
     "github.com/marshall/zero-ops-bot/internal/state"
     "github.com/marshall/zero-ops-bot/internal/utils"
@@ -53,14 +54,15 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
         defer cancel()
 
         result, err := n8n.TriggerWebhook(ctx, services.WebhookPayload{
-            Type:      "command",
-            Command:   "chat",
-            Content:   content,
-            UserID:    m.Author.ID,
-            UserName:  m.Author.Username,
-            ChannelID: m.ChannelID,
-            ThreadID:  threadID,
-            MessageID: m.ID,
+            Type:              "command",
+            Command:           "chat",
+            Content:           content,
+            UserID:            m.Author.ID,
+            UserName:          m.Author.Username,
+            ChannelID:         m.ChannelID,
+            ThreadID:          threadID,
+            MessageID:         m.ID,
+            AvailableCommands: commands.AvailableCommands,
         })
 
         if err != nil {
