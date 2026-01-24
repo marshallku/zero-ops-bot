@@ -16,23 +16,25 @@ type N8nClient struct {
     httpClient    *http.Client
 }
 
-type CommandMeta struct {
+type RepoMeta struct {
     Name        string `json:"name"`
     Description string `json:"description"`
+    Command     string `json:"command"`
 }
 
 type WebhookPayload struct {
-    Type              string        `json:"type"`
-    Command           string        `json:"command,omitempty"`
-    Content           string        `json:"content,omitempty"`
-    UserID            string        `json:"user_id"`
-    UserName          string        `json:"user_name,omitempty"`
-    ChannelID         string        `json:"channel_id"`
-    MessageID         string        `json:"message_id,omitempty"`
-    ThreadID          string        `json:"thread_id,omitempty"`
-    Timestamp         string        `json:"timestamp"`
-    Source            string        `json:"source"`
-    AvailableCommands []CommandMeta `json:"available_commands,omitempty"`
+    Type         string     `json:"type"`
+    Command      string     `json:"command,omitempty"`
+    Content      string     `json:"content,omitempty"`
+    UserID       string     `json:"user_id"`
+    UserName     string     `json:"user_name,omitempty"`
+    ChannelID    string     `json:"channel_id"`
+    MessageID    string     `json:"message_id,omitempty"`
+    ThreadID     string     `json:"thread_id,omitempty"`
+    Timestamp    string     `json:"timestamp"`
+    Source       string     `json:"source"`
+    SystemPrompt string     `json:"system_prompt,omitempty"`
+    Repos        []RepoMeta `json:"repos,omitempty"`
 }
 
 type WebhookResponse struct {

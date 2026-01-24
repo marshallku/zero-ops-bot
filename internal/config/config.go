@@ -7,12 +7,13 @@ import (
 )
 
 type Config struct {
-    DiscordToken    string
-    DiscordAppID    string
-    DiscordGuildID  string
-    N8nWebhookURL   string
+    DiscordToken     string
+    DiscordAppID     string
+    DiscordGuildID   string
+    N8nWebhookURL    string
     N8nWebhookSecret string
-    AllowedChannels []string
+    AllowedChannels  []string
+    MetadataPath     string
 }
 
 func Load() (*Config, error) {
@@ -40,6 +41,11 @@ func Load() (*Config, error) {
         }
     }
 
+    metadataPath := os.Getenv("METADATA_PATH")
+    if metadataPath == "" {
+        metadataPath = "metadata.yaml"
+    }
+
     return &Config{
         DiscordToken:     token,
         DiscordAppID:     appID,
@@ -47,5 +53,6 @@ func Load() (*Config, error) {
         N8nWebhookURL:    webhookURL,
         N8nWebhookSecret: os.Getenv("N8N_WEBHOOK_SECRET"),
         AllowedChannels:  allowedChannels,
+        MetadataPath:     metadataPath,
     }, nil
 }

@@ -7,7 +7,7 @@ import (
     "time"
 
     "github.com/bwmarrin/discordgo"
-    "github.com/marshall/zero-ops-bot/internal/commands"
+    "github.com/marshall/zero-ops-bot/internal/metadata"
     "github.com/marshall/zero-ops-bot/internal/services"
     "github.com/marshall/zero-ops-bot/internal/state"
     "github.com/marshall/zero-ops-bot/internal/utils"
@@ -53,16 +53,27 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
         ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
         defer cancel()
 
+        meta := metadata.Get()
+        repos := make([]services.RepoMeta, len(meta.Repos))
+        for i, r := range meta.Repos {
+            repos[i] = services.RepoMeta{
+                Name:        r.Name,
+                Description: r.Description,
+                Command:     r.Command,
+            }
+        }
+
         result, err := n8n.TriggerWebhook(ctx, services.WebhookPayload{
-            Type:              "command",
-            Command:           "chat",
-            Content:           content,
-            UserID:            m.Author.ID,
-            UserName:          m.Author.Username,
-            ChannelID:         m.ChannelID,
-            ThreadID:          threadID,
-            MessageID:         m.ID,
-            AvailableCommands: commands.AvailableCommands,
+            Type:         "command",
+            Command:      "chat",
+            Content:      content,
+            UserID:       m.Author.ID,
+            UserName:     m.Author.Username,
+            ChannelID:    m.ChannelID,
+            ThreadID:     threadID,
+            MessageID:    m.ID,
+            SystemPrompt: meta.SystemPrompt,
+            Repos:        repos,
         })
 
         if err != nil {

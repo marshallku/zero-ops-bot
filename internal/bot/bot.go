@@ -5,8 +5,10 @@ import (
     "log"
 
     "github.com/bwmarrin/discordgo"
+    "github.com/marshall/zero-ops-bot/internal/commands"
     "github.com/marshall/zero-ops-bot/internal/config"
     "github.com/marshall/zero-ops-bot/internal/handlers"
+    "github.com/marshall/zero-ops-bot/internal/metadata"
     "github.com/marshall/zero-ops-bot/internal/services"
 )
 
@@ -32,8 +34,13 @@ func New(cfg *config.Config) (*Bot, error) {
 }
 
 func (b *Bot) Start() error {
+    if err := metadata.Load(b.config.MetadataPath); err != nil {
+        return fmt.Errorf("load metadata: %w", err)
+    }
+
     n8nClient := services.NewN8nClient(b.config.N8nWebhookURL, b.config.N8nWebhookSecret)
 
+    b.session.AddHandler(handlers.NewInteractionHandler())
     b.session.AddHandler(handlers.NewMessageHandler(n8nClient, b.config.AllowedChannels))
     b.session.AddHandler(handlers.NewMentionHandler(n8nClient))
 
@@ -45,6 +52,23 @@ func (b *Bot) Start() error {
         return fmt.Errorf("open session: %w", err)
     }
 
+    if err := b.registerCommands(); err != nil {
+        return fmt.Errorf("register commands: %w", err)
+    }
+
+    return nil
+}
+
+func (b *Bot) registerCommands() error {
+    defs := commands.GetDefinitions()
+    guildID := b.config.DiscordGuildID
+
+    registered, err := b.session.ApplicationCommandBulkOverwrite(b.config.DiscordAppID, guildID, defs)
+    if err != nil {
+        return err
+    }
+
+    log.Printf("Registered %d commands", len(registered))
     return nil
 }
 
