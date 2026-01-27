@@ -50,6 +50,8 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
 
         content := stripMention(s, m.Content)
 
+        sessionID := state.ThreadIDToSessionID(threadID)
+
         ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
         defer cancel()
 
@@ -71,6 +73,7 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
             UserName:     m.Author.Username,
             ChannelID:    m.ChannelID,
             ThreadID:     threadID,
+            SessionID:    sessionID,
             MessageID:    m.ID,
             SystemPrompt: meta.SystemPrompt,
             Repos:        repos,

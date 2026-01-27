@@ -31,6 +31,7 @@ type WebhookPayload struct {
     ChannelID    string     `json:"channel_id"`
     MessageID    string     `json:"message_id,omitempty"`
     ThreadID     string     `json:"thread_id,omitempty"`
+    SessionID    string     `json:"session_id,omitempty"`
     Timestamp    string     `json:"timestamp"`
     Source       string     `json:"source"`
     SystemPrompt string     `json:"system_prompt,omitempty"`
