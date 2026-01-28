@@ -1,8 +1,10 @@
 package bot
 
 import (
+    "context"
     "fmt"
     "log"
+    "time"
 
     "github.com/bwmarrin/discordgo"
     "github.com/marshall/zero-ops-bot/internal/commands"
@@ -12,9 +14,12 @@ import (
     "github.com/marshall/zero-ops-bot/internal/services"
 )
 
+const shutdownTimeout = 10 * time.Second
+
 type Bot struct {
-    session *discordgo.Session
-    config  *config.Config
+    session   *discordgo.Session
+    config    *config.Config
+    n8nClient *services.N8nClient
 }
 
 func New(cfg *config.Config) (*Bot, error) {
@@ -38,11 +43,11 @@ func (b *Bot) Start() error {
         return fmt.Errorf("load metadata: %w", err)
     }
 
-    n8nClient := services.NewN8nClient(b.config.N8nWebhookURL, b.config.N8nWebhookSecret)
+    b.n8nClient = services.NewN8nClient(b.config.N8nWebhookURL, b.config.N8nWebhookSecret)
 
     b.session.AddHandler(handlers.NewInteractionHandler())
-    b.session.AddHandler(handlers.NewMessageHandler(n8nClient, b.config.AllowedChannels))
-    b.session.AddHandler(handlers.NewMentionHandler(n8nClient))
+    b.session.AddHandler(handlers.NewMessageHandler(b.n8nClient, b.config.AllowedChannels))
+    b.session.AddHandler(handlers.NewMentionHandler(b.n8nClient))
 
     b.session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
         log.Printf("Logged in as %s", r.User.String())
@@ -73,5 +78,14 @@ func (b *Bot) registerCommands() error {
 }
 
 func (b *Bot) Stop() error {
+    ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+    defer cancel()
+
+    if b.n8nClient != nil {
+        if err := b.n8nClient.Shutdown(ctx); err != nil {
+            log.Printf("Warning: shutdown timeout waiting for webhooks: %v", err)
+        }
+    }
+
     return b.session.Close()
 }

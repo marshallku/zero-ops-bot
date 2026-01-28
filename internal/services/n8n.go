@@ -7,6 +7,7 @@ import (
     "fmt"
     "io"
     "net/http"
+    "sync"
     "time"
 )
 
@@ -14,6 +15,7 @@ type N8nClient struct {
     webhookURL    string
     webhookSecret string
     httpClient    *http.Client
+    wg            sync.WaitGroup
 }
 
 type RepoMeta struct {
@@ -95,9 +97,26 @@ func (c *N8nClient) TriggerWebhook(ctx context.Context, payload WebhookPayload) 
 }
 
 func (c *N8nClient) TriggerWebhookAsync(payload WebhookPayload) {
+    c.wg.Add(1)
     go func() {
+        defer c.wg.Done()
         ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
         defer cancel()
         c.TriggerWebhook(ctx, payload)
     }()
+}
+
+func (c *N8nClient) Shutdown(ctx context.Context) error {
+    done := make(chan struct{})
+    go func() {
+        c.wg.Wait()
+        close(done)
+    }()
+
+    select {
+    case <-done:
+        return nil
+    case <-ctx.Done():
+        return ctx.Err()
+    }
 }
