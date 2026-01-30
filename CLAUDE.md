@@ -38,6 +38,7 @@ internal/
   services/       External service clients (n8n)
   commands/       Slash command definitions
   handlers/       Discord event handlers
+  heartbeat/      Proactive messaging loop
   bot/            Discord client setup
 ```
 
@@ -51,3 +52,5 @@ internal/
 | N8N_WEBHOOK_URL | Yes | n8n webhook endpoint |
 | N8N_WEBHOOK_SECRET | No | Webhook auth (sent as `x-discord-api-key` header) |
 | ALLOWED_CHANNELS | No | Comma-separated channel IDs for message forwarding |
+| HEARTBEAT_CHANNEL_ID | No | Channel ID for proactive bot messages |
+| HEARTBEAT_INTERVAL | No | Heartbeat frequency (default: `1h`, e.g. `30m`, `2h`) |

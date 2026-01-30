@@ -7,6 +7,7 @@ Discord bot for home lab maintenance automation. Triggers n8n workflows via webh
 - `/check-health` - Trigger health check workflow
 - `/infra` - Trigger infrastructure workflow
 - Message forwarding to n8n for AI/automation
+- Proactive heartbeat messaging — bot periodically checks in with n8n and posts to a channel
 - Extensible command system
 
 ## Setup

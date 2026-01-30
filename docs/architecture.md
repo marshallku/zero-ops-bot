@@ -54,6 +54,16 @@ Discord User ← Bot ← Webhook Response ←──────┘
 - Channel filtering prevents spam
 - Non-blocking (fire-and-forget for most messages)
 
+### 5. Proactive Heartbeat: n8n-driven
+
+**Decision**: Bot periodically pings n8n; n8n decides whether to post
+
+**Rationale**:
+- Bot stays simple — just a timer and a webhook call
+- All intelligence (what to say, when to stay quiet) lives in n8n
+- Interval is configurable via `HEARTBEAT_INTERVAL` env var
+- Disabled by default (requires `HEARTBEAT_CHANNEL_ID` to be set)
+
 ## Package Structure
 
 ```
@@ -67,6 +77,8 @@ internal/
 ├── handlers/    Discord event handlers
 │   ├── interaction.go   Slash command routing
 │   └── message.go       Message forwarding
+├── heartbeat/   Proactive messaging
+│   └── heartbeat.go   Periodic n8n heartbeat loop
 └── bot/         Discord session management
     └── bot.go   Client setup, lifecycle
 ```
@@ -88,6 +100,14 @@ internal/
 2. `handlers/message.go` checks filters
 3. Forwards to n8n webhook (non-blocking)
 4. n8n can optionally reply via Discord API
+
+### Heartbeat Flow
+
+1. Bot starts a ticker goroutine (default: every 1 hour)
+2. Each tick sends `type: "heartbeat"` payload to n8n with repos/system_prompt context
+3. n8n decides whether to respond (server alerts, project updates, etc.)
+4. If n8n returns a message, bot posts it to the configured heartbeat channel
+5. If n8n returns empty, bot silently skips
 
 ## Security Considerations
 
