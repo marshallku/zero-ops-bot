@@ -10,6 +10,7 @@ import (
     "github.com/marshall/zero-ops-bot/internal/commands"
     "github.com/marshall/zero-ops-bot/internal/config"
     "github.com/marshall/zero-ops-bot/internal/handlers"
+    "github.com/marshall/zero-ops-bot/internal/heartbeat"
     "github.com/marshall/zero-ops-bot/internal/metadata"
     "github.com/marshall/zero-ops-bot/internal/services"
 )
@@ -17,9 +18,10 @@ import (
 const shutdownTimeout = 10 * time.Second
 
 type Bot struct {
-    session   *discordgo.Session
-    config    *config.Config
-    n8nClient *services.N8nClient
+    session        *discordgo.Session
+    config         *config.Config
+    n8nClient      *services.N8nClient
+    cancelHeartbeat context.CancelFunc
 }
 
 func New(cfg *config.Config) (*Bot, error) {
@@ -61,6 +63,13 @@ func (b *Bot) Start() error {
         return fmt.Errorf("register commands: %w", err)
     }
 
+    if b.config.HeartbeatChannelID != "" {
+        ctx, cancel := context.WithCancel(context.Background())
+        b.cancelHeartbeat = cancel
+        hb := heartbeat.New(b.session, b.n8nClient, b.config.HeartbeatChannelID, b.config.HeartbeatInterval)
+        go hb.Start(ctx)
+    }
+
     return nil
 }
 
@@ -78,6 +87,10 @@ func (b *Bot) registerCommands() error {
 }
 
 func (b *Bot) Stop() error {
+    if b.cancelHeartbeat != nil {
+        b.cancelHeartbeat()
+    }
+
     ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
     defer cancel()
 
