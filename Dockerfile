@@ -14,6 +14,7 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 COPY --from=builder /app/bot .
+RUN chown nobody:nobody /app
 
 USER nobody:nobody
 
