@@ -14,8 +14,9 @@ type Repo struct {
 }
 
 type Metadata struct {
-    SystemPrompt string `yaml:"system_prompt" json:"system_prompt"`
-    Repos        []Repo `yaml:"repos" json:"repos"`
+    SystemPrompt    string `yaml:"system_prompt" json:"system_prompt"`
+    HeartbeatPrompt string `yaml:"heartbeat_prompt" json:"heartbeat_prompt"`
+    Repos           []Repo `yaml:"repos" json:"repos"`
 }
 
 var (
@@ -33,8 +34,9 @@ func Load(path string) error {
     file, err := os.ReadFile(path)
     if os.IsNotExist(err) {
         data = Metadata{
-            SystemPrompt: defaultSystemPrompt,
-            Repos:        []Repo{},
+            SystemPrompt:    defaultSystemPrompt,
+            HeartbeatPrompt: defaultHeartbeatPrompt,
+            Repos:           []Repo{},
         }
         return Save()
     }
@@ -101,4 +103,26 @@ Available repositories and their commands are provided. Match the user's intent 
 If the user's request doesn't match any specific repository, respond conversationally as "chat".
 
 Respond with JSON: {"command": "<command_name>", "reasoning": "<brief explanation>"}
+`
+
+const defaultHeartbeatPrompt = `You are a proactive homelab maintenance assistant running on a periodic heartbeat.
+
+Perform the following checks and report ONLY if there are actionable findings. If everything is normal, return an empty response.
+
+## 1. Repository Review
+For each registered repository:
+- Check for recent commits and summarize notable changes
+- Identify potential enhancements (outdated dependencies, missing tests, TODOs in code)
+- Flag any open issues or stale pull requests
+
+## 2. Infrastructure Health
+- Run "docker ps -a" and report containers that are exited, restarting, or unhealthy
+- Run "kubectl get pods --all-namespaces" and report pods not in Running/Completed state
+- Flag any container or pod with restart count > 3
+
+## Response Rules
+- Keep it concise. Use bullet points.
+- Group findings by category (Repos / Docker / Kubernetes).
+- Prefix severity: 🔴 Critical, 🟡 Warning, 🔵 Info
+- If nothing to report, return an empty response (no message at all).
 `

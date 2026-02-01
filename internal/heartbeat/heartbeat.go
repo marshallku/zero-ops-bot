@@ -71,7 +71,7 @@ func (h *Heartbeat) beat(ctx context.Context) {
     result, err := h.n8nClient.TriggerWebhook(beatCtx, services.WebhookPayload{
         Type:         "heartbeat",
         ChannelID:    h.channelID,
-        SystemPrompt: meta.SystemPrompt,
+        SystemPrompt: meta.HeartbeatPrompt,
         Repos:        repos,
     })
     if err != nil {
