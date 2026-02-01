@@ -35,15 +35,19 @@ type WebhookPayload struct {
 	ThreadID     string     `json:"thread_id,omitempty"`
 	SessionID    string     `json:"session_id,omitempty"`
 	Timestamp    string     `json:"timestamp"`
-	Source       string     `json:"source"`
-	SystemPrompt string     `json:"system_prompt,omitempty"`
-	Repos        []RepoMeta `json:"repos,omitempty"`
+	Source string     `json:"source"`
+	Repos  []RepoMeta `json:"repos,omitempty"`
 }
 
 type WebhookResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message,omitempty"`
 	Data    any    `json:"data,omitempty"`
+}
+
+type AnalyzeResponse struct {
+	Command string `json:"command"`
+	Content string `json:"content"`
 }
 
 func NewN8nClient(webhookURL, webhookSecret string) *N8nClient {
@@ -94,6 +98,43 @@ func (c *N8nClient) TriggerWebhook(ctx context.Context, payload WebhookPayload) 
 		Success: true,
 		Message: string(respBody),
 	}, nil
+}
+
+func (c *N8nClient) TriggerWebhookJSON(ctx context.Context, payload WebhookPayload) (*AnalyzeResponse, error) {
+	payload.Timestamp = time.Now().UTC().Format(time.RFC3339)
+	payload.Source = "zero-ops-bot"
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.webhookURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.webhookSecret != "" {
+		req.Header.Set("x-discord-api-key", c.webhookSecret)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var result AnalyzeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+
+	return &result, nil
 }
 
 func (c *N8nClient) TriggerWebhookAsync(payload WebhookPayload) {

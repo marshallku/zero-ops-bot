@@ -67,20 +67,36 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
 			}
 		}
 
-		result, err := n8n.TriggerWebhook(ctx, services.WebhookPayload{
-			Type:         "mention",
-			Command:      "chat",
-			Content:      content,
-			UserID:       m.Author.ID,
-			UserName:     m.Author.Username,
-			ChannelID:    m.ChannelID,
-			ThreadID:     threadID,
-			SessionID:    sessionID,
-			MessageID:    m.ID,
-			SystemPrompt: meta.SystemPrompt,
-			Repos:        repos,
+		analyzed, err := n8n.TriggerWebhookJSON(ctx, services.WebhookPayload{
+			Type:      "mention",
+			Command:   "analyze",
+			Content: "Given the following system context and user message, determine the user's intent, select appropriate tools, and build a prompt to execute their request.\n\nSystem context:\n" + meta.SystemPrompt + "\n\nUser message:\n" + content,
+			UserID:    m.Author.ID,
+			UserName:  m.Author.Username,
+			ChannelID: m.ChannelID,
+			ThreadID:  threadID,
+			SessionID: sessionID,
+			MessageID: m.ID,
+			Repos:     repos,
 		})
+		if err != nil {
+			s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
+			s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
+			s.ChannelMessageSend(threadID, "Sorry, I encountered an error: "+err.Error())
+			return
+		}
 
+		result, err := n8n.TriggerWebhook(ctx, services.WebhookPayload{
+			Type:      "mention",
+			Command:   analyzed.Command,
+			Content:   analyzed.Content,
+			UserID:    m.Author.ID,
+			UserName:  m.Author.Username,
+			ChannelID: m.ChannelID,
+			ThreadID:  threadID,
+			SessionID: sessionID,
+			MessageID: m.ID,
+		})
 		if err != nil {
 			s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
 			s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
