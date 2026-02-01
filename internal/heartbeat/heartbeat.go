@@ -69,11 +69,11 @@ func (h *Heartbeat) beat(ctx context.Context) {
 	defer cancel()
 
 	result, err := h.n8nClient.TriggerWebhook(beatCtx, services.WebhookPayload{
-		Type:         "command",
-		Command:      "heartbeat",
-		ChannelID:    h.channelID,
-		SystemPrompt: meta.HeartbeatPrompt,
-		Repos:        repos,
+		Type:      "command",
+		Command:   "heartbeat",
+		ChannelID: h.channelID,
+		Content:   meta.HeartbeatPrompt,
+		Repos:     repos,
 	})
 	if err != nil {
 		log.Printf("Heartbeat webhook failed: %v", err)
