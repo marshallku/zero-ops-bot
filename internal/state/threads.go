@@ -6,14 +6,14 @@ import "sync"
 var ActiveThreads sync.Map
 
 func AddThread(threadID string) {
-    ActiveThreads.Store(threadID, struct{}{})
+	ActiveThreads.Store(threadID, struct{}{})
 }
 
 func IsActiveThread(threadID string) bool {
-    _, ok := ActiveThreads.Load(threadID)
-    return ok
+	_, ok := ActiveThreads.Load(threadID)
+	return ok
 }
 
 func RemoveThread(threadID string) {
-    ActiveThreads.Delete(threadID)
+	ActiveThreads.Delete(threadID)
 }

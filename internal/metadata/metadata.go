@@ -1,99 +1,99 @@
 package metadata
 
 import (
-    "os"
-    "sync"
+	"os"
+	"sync"
 
-    "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 )
 
 type Repo struct {
-    Name        string `yaml:"name" json:"name"`
-    Description string `yaml:"description" json:"description"`
-    Path        string `yaml:"path" json:"path"`
+	Name        string `yaml:"name" json:"name"`
+	Description string `yaml:"description" json:"description"`
+	Path        string `yaml:"path" json:"path"`
 }
 
 type Metadata struct {
-    SystemPrompt    string `yaml:"system_prompt" json:"system_prompt"`
-    HeartbeatPrompt string `yaml:"heartbeat_prompt" json:"heartbeat_prompt"`
-    Repos           []Repo `yaml:"repos" json:"repos"`
+	SystemPrompt    string `yaml:"system_prompt" json:"system_prompt"`
+	HeartbeatPrompt string `yaml:"heartbeat_prompt" json:"heartbeat_prompt"`
+	Repos           []Repo `yaml:"repos" json:"repos"`
 }
 
 var (
-    data     Metadata
-    filePath string
-    mu       sync.RWMutex
+	data     Metadata
+	filePath string
+	mu       sync.RWMutex
 )
 
 func Load(path string) error {
-    mu.Lock()
-    defer mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
-    filePath = path
+	filePath = path
 
-    file, err := os.ReadFile(path)
-    if os.IsNotExist(err) {
-        data = Metadata{
-            SystemPrompt:    defaultSystemPrompt,
-            HeartbeatPrompt: defaultHeartbeatPrompt,
-            Repos:           []Repo{},
-        }
-        return Save()
-    }
-    if err != nil {
-        return err
-    }
+	file, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		data = Metadata{
+			SystemPrompt:    defaultSystemPrompt,
+			HeartbeatPrompt: defaultHeartbeatPrompt,
+			Repos:           []Repo{},
+		}
+		return Save()
+	}
+	if err != nil {
+		return err
+	}
 
-    return yaml.Unmarshal(file, &data)
+	return yaml.Unmarshal(file, &data)
 }
 
 func Save() error {
-    file, err := yaml.Marshal(&data)
-    if err != nil {
-        return err
-    }
-    return os.WriteFile(filePath, file, 0644)
+	file, err := yaml.Marshal(&data)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filePath, file, 0644)
 }
 
 func Get() Metadata {
-    mu.RLock()
-    defer mu.RUnlock()
-    return data
+	mu.RLock()
+	defer mu.RUnlock()
+	return data
 }
 
 func AddRepo(repo Repo) error {
-    mu.Lock()
-    defer mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
-    for i, r := range data.Repos {
-        if r.Name == repo.Name {
-            data.Repos[i] = repo
-            return Save()
-        }
-    }
+	for i, r := range data.Repos {
+		if r.Name == repo.Name {
+			data.Repos[i] = repo
+			return Save()
+		}
+	}
 
-    data.Repos = append(data.Repos, repo)
-    return Save()
+	data.Repos = append(data.Repos, repo)
+	return Save()
 }
 
 func RemoveRepo(name string) bool {
-    mu.Lock()
-    defer mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
-    for i, r := range data.Repos {
-        if r.Name == name {
-            data.Repos = append(data.Repos[:i], data.Repos[i+1:]...)
-            Save()
-            return true
-        }
-    }
-    return false
+	for i, r := range data.Repos {
+		if r.Name == name {
+			data.Repos = append(data.Repos[:i], data.Repos[i+1:]...)
+			Save()
+			return true
+		}
+	}
+	return false
 }
 
 func ListRepos() []Repo {
-    mu.RLock()
-    defer mu.RUnlock()
-    return data.Repos
+	mu.RLock()
+	defer mu.RUnlock()
+	return data.Repos
 }
 
 const defaultSystemPrompt = `You are a homelab assistant. Classify the user's message and route it to the appropriate workflow.
