@@ -66,8 +66,7 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
         }
 
         result, err := n8n.TriggerWebhook(ctx, services.WebhookPayload{
-            Type:         "command",
-            Command:      "chat",
+            Type:         "mention",
             Content:      content,
             UserID:       m.Author.ID,
             UserName:     m.Author.Username,
