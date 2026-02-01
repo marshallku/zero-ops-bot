@@ -10,7 +10,6 @@ import (
 type Repo struct {
     Name        string `yaml:"name" json:"name"`
     Description string `yaml:"description" json:"description"`
-    Command     string `yaml:"command" json:"command"`
 }
 
 type Metadata struct {

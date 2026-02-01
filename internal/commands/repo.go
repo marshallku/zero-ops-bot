@@ -24,12 +24,6 @@ var RepoCommand = &discordgo.ApplicationCommand{
                     Required:    true,
                 },
                 {
-                    Name:        "command",
-                    Description: "Command to trigger for this repo",
-                    Type:        discordgo.ApplicationCommandOptionString,
-                    Required:    true,
-                },
-                {
                     Name:        "description",
                     Description: "What this repo is for",
                     Type:        discordgo.ApplicationCommandOptionString,
@@ -76,13 +70,11 @@ func HandleRepoCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func handleRepoAdd(s *discordgo.Session, i *discordgo.InteractionCreate, opts []*discordgo.ApplicationCommandInteractionDataOption) {
-    var name, command, description string
+    var name, description string
     for _, opt := range opts {
         switch opt.Name {
         case "name":
             name = opt.StringValue()
-        case "command":
-            command = opt.StringValue()
         case "description":
             description = opt.StringValue()
         }
@@ -90,7 +82,6 @@ func handleRepoAdd(s *discordgo.Session, i *discordgo.InteractionCreate, opts []
 
     err := metadata.AddRepo(metadata.Repo{
         Name:        name,
-        Command:     command,
         Description: description,
     })
 
@@ -99,7 +90,7 @@ func handleRepoAdd(s *discordgo.Session, i *discordgo.InteractionCreate, opts []
         return
     }
 
-    respond(s, i, fmt.Sprintf("Added repo **%s** with command `%s`", name, command))
+    respond(s, i, fmt.Sprintf("Added repo **%s**", name))
 }
 
 func handleRepoList(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -113,7 +104,7 @@ func handleRepoList(s *discordgo.Session, i *discordgo.InteractionCreate) {
     var sb strings.Builder
     sb.WriteString("**Repositories:**\n")
     for _, repo := range repos {
-        sb.WriteString(fmt.Sprintf("- **%s** (`%s`): %s\n", repo.Name, repo.Command, repo.Description))
+        sb.WriteString(fmt.Sprintf("- **%s**: %s\n", repo.Name, repo.Description))
     }
 
     respond(s, i, sb.String())
