@@ -32,6 +32,8 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
 			return
 		}
 
+		s.MessageReactionAdd(m.ChannelID, m.ID, "👀")
+
 		var threadID string
 		if channel.IsThread() {
 			threadID = m.ChannelID
@@ -80,9 +82,14 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
 		})
 
 		if err != nil {
+			s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
+			s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
 			s.ChannelMessageSend(threadID, "Sorry, I encountered an error: "+err.Error())
 			return
 		}
+
+		s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
+		s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 
 		if result.Message != "" {
 			chunks := utils.SplitMessage(result.Message)
