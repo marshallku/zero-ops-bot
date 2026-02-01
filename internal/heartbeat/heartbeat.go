@@ -28,20 +28,30 @@ func New(session *discordgo.Session, n8nClient *services.N8nClient, channelID st
 }
 
 func (h *Heartbeat) Start(ctx context.Context) {
-    ticker := time.NewTicker(h.interval)
-    defer ticker.Stop()
+    next := nextAlignedTick(time.Now(), h.interval)
+    log.Printf("Heartbeat started (interval: %s, channel: %s, next: %s)", h.interval, h.channelID, next.Format(time.RFC3339))
 
-    log.Printf("Heartbeat started (interval: %s, channel: %s)", h.interval, h.channelID)
+    timer := time.NewTimer(time.Until(next))
+    defer timer.Stop()
 
     for {
         select {
         case <-ctx.Done():
             log.Println("Heartbeat stopped")
             return
-        case <-ticker.C:
+        case <-timer.C:
             h.beat(ctx)
+            next = nextAlignedTick(time.Now(), h.interval)
+            timer.Reset(time.Until(next))
         }
     }
+}
+
+func nextAlignedTick(now time.Time, interval time.Duration) time.Time {
+    intervalSec := int64(interval.Seconds())
+    nowUnix := now.Unix()
+    next := nowUnix + intervalSec - (nowUnix % intervalSec)
+    return time.Unix(next, 0)
 }
 
 func (h *Heartbeat) beat(ctx context.Context) {
