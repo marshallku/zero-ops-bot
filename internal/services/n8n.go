@@ -55,7 +55,7 @@ func NewN8nClient(webhookURL, webhookSecret string) *N8nClient {
 		webhookURL:    webhookURL,
 		webhookSecret: webhookSecret,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 10 * time.Minute,
 		},
 	}
 }

@@ -65,7 +65,7 @@ func (h *Heartbeat) beat(ctx context.Context) {
 		}
 	}
 
-	beatCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	beatCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
 	result, err := h.n8nClient.TriggerWebhook(beatCtx, services.WebhookPayload{
