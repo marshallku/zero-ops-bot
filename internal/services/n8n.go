@@ -21,6 +21,7 @@ type N8nClient struct {
 type RepoMeta struct {
     Name        string `json:"name"`
     Description string `json:"description"`
+    Path        string `json:"path"`
 }
 
 type WebhookPayload struct {

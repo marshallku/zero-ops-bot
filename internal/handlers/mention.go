@@ -61,6 +61,7 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
             repos[i] = services.RepoMeta{
                 Name:        r.Name,
                 Description: r.Description,
+                Path:        r.Path,
             }
         }
 

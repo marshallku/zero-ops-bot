@@ -29,6 +29,12 @@ var RepoCommand = &discordgo.ApplicationCommand{
                     Type:        discordgo.ApplicationCommandOptionString,
                     Required:    true,
                 },
+                {
+                    Name:        "path",
+                    Description: "Filesystem path to the repository",
+                    Type:        discordgo.ApplicationCommandOptionString,
+                    Required:    true,
+                },
             },
         },
         {
@@ -70,19 +76,22 @@ func HandleRepoCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func handleRepoAdd(s *discordgo.Session, i *discordgo.InteractionCreate, opts []*discordgo.ApplicationCommandInteractionDataOption) {
-    var name, description string
+    var name, description, path string
     for _, opt := range opts {
         switch opt.Name {
         case "name":
             name = opt.StringValue()
         case "description":
             description = opt.StringValue()
+        case "path":
+            path = opt.StringValue()
         }
     }
 
     err := metadata.AddRepo(metadata.Repo{
         Name:        name,
         Description: description,
+        Path:        path,
     })
 
     if err != nil {
@@ -104,7 +113,7 @@ func handleRepoList(s *discordgo.Session, i *discordgo.InteractionCreate) {
     var sb strings.Builder
     sb.WriteString("**Repositories:**\n")
     for _, repo := range repos {
-        sb.WriteString(fmt.Sprintf("- **%s**: %s\n", repo.Name, repo.Description))
+        sb.WriteString(fmt.Sprintf("- **%s** (`%s`): %s\n", repo.Name, repo.Path, repo.Description))
     }
 
     respond(s, i, sb.String())

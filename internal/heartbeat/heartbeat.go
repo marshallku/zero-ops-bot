@@ -61,6 +61,7 @@ func (h *Heartbeat) beat(ctx context.Context) {
         repos[i] = services.RepoMeta{
             Name:        r.Name,
             Description: r.Description,
+            Path:        r.Path,
         }
     }
 
