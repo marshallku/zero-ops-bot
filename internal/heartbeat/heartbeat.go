@@ -2,7 +2,9 @@ package heartbeat
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -65,6 +67,16 @@ func (h *Heartbeat) beat(ctx context.Context) {
 		}
 	}
 
+	var repoLines []string
+	for _, r := range repos {
+		repoLines = append(repoLines, fmt.Sprintf("- %s (%s): %s", r.Name, r.Path, r.Description))
+	}
+
+	content := meta.HeartbeatPrompt
+	if len(repoLines) > 0 {
+		content += "\n\n## Registered Repositories\n" + strings.Join(repoLines, "\n")
+	}
+
 	beatCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
@@ -72,7 +84,7 @@ func (h *Heartbeat) beat(ctx context.Context) {
 		Type:      "command",
 		Command:   "heartbeat",
 		ChannelID: h.channelID,
-		Content:   meta.HeartbeatPrompt,
+		Content:   content,
 		Repos:     repos,
 	})
 	if err != nil {
