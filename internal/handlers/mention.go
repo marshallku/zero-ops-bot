@@ -164,13 +164,24 @@ func isMentioned(s *discordgo.Session, m *discordgo.MessageCreate) bool {
 	}
 
 	botID := s.State.User.ID
-	return strings.Contains(m.Content, "<@"+botID+">") || strings.Contains(m.Content, "<@!"+botID+">")
+	if strings.Contains(m.Content, "<@"+botID+">") || strings.Contains(m.Content, "<@!"+botID+">") {
+		return true
+	}
+
+	return strings.Contains(strings.ToLower(m.Content), "@"+strings.ToLower(s.State.User.Username))
 }
 
 func stripMention(s *discordgo.Session, content string) string {
 	botID := s.State.User.ID
 	content = strings.ReplaceAll(content, "<@"+botID+">", "")
 	content = strings.ReplaceAll(content, "<@!"+botID+">", "")
+
+	// Strip plain text mention (e.g., copied messages)
+	idx := strings.Index(strings.ToLower(content), "@"+strings.ToLower(s.State.User.Username))
+	if idx != -1 {
+		content = content[:idx] + content[idx+1+len(s.State.User.Username):]
+	}
+
 	return strings.TrimSpace(content)
 }
 
