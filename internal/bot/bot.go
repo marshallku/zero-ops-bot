@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
@@ -10,18 +9,20 @@ import (
 	"github.com/marshall/zero-ops-bot/internal/commands"
 	"github.com/marshall/zero-ops-bot/internal/config"
 	"github.com/marshall/zero-ops-bot/internal/handlers"
-	"github.com/marshall/zero-ops-bot/internal/heartbeat"
 	"github.com/marshall/zero-ops-bot/internal/metadata"
+	"github.com/marshall/zero-ops-bot/internal/notes"
+	"github.com/marshall/zero-ops-bot/internal/scheduler"
 	"github.com/marshall/zero-ops-bot/internal/services"
 )
 
 const shutdownTimeout = 10 * time.Second
 
 type Bot struct {
-	session         *discordgo.Session
-	config          *config.Config
-	n8nClient       *services.N8nClient
-	cancelHeartbeat context.CancelFunc
+	session   *discordgo.Session
+	config    *config.Config
+	n8nClient *services.N8nClient
+	scheduler *scheduler.Scheduler
+	notes     *notes.Store
 }
 
 func New(cfg *config.Config) (*Bot, error) {
@@ -47,9 +48,23 @@ func (b *Bot) Start() error {
 
 	b.n8nClient = services.NewN8nClient(b.config.N8nWebhookURL, b.config.N8nWebhookSecret)
 
-	b.session.AddHandler(handlers.NewInteractionHandler())
+	noteStore, err := notes.NewStore(b.config.NotesDir)
+	if err != nil {
+		return fmt.Errorf("init notes: %w", err)
+	}
+	b.notes = noteStore
+
+	b.scheduler = scheduler.New(b.session, b.n8nClient, b.notes, b.config.Timezone)
+
+	noteHandler := commands.NewNoteHandler(b.notes)
+	scheduleHandler := commands.NewScheduleHandler(b.scheduler)
+
+	b.session.AddHandler(handlers.NewInteractionHandler(handlers.InteractionHandlers{
+		Note:     noteHandler,
+		Schedule: scheduleHandler,
+	}))
 	b.session.AddHandler(handlers.NewMessageHandler(b.n8nClient, b.config.AllowedChannels))
-	b.session.AddHandler(handlers.NewMentionHandler(b.n8nClient))
+	b.session.AddHandler(handlers.NewMentionHandler(b.n8nClient, b.notes))
 
 	b.session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Printf("Logged in as %s", r.User.String())
@@ -63,12 +78,13 @@ func (b *Bot) Start() error {
 		return fmt.Errorf("register commands: %w", err)
 	}
 
-	if b.config.HeartbeatChannelID != "" {
-		ctx, cancel := context.WithCancel(context.Background())
-		b.cancelHeartbeat = cancel
-		hb := heartbeat.New(b.session, b.n8nClient, b.config.HeartbeatChannelID, b.config.HeartbeatInterval)
-		go hb.Start(ctx)
+	meta := metadata.Get()
+	for _, sched := range meta.Schedules {
+		if err := b.scheduler.Register(sched); err != nil {
+			log.Printf("Failed to register schedule %q: %v", sched.Name, err)
+		}
 	}
+	b.scheduler.Start()
 
 	return nil
 }
@@ -87,17 +103,12 @@ func (b *Bot) registerCommands() error {
 }
 
 func (b *Bot) Stop() error {
-	if b.cancelHeartbeat != nil {
-		b.cancelHeartbeat()
+	if b.scheduler != nil {
+		b.scheduler.Stop()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-	defer cancel()
-
 	if b.n8nClient != nil {
-		if err := b.n8nClient.Shutdown(ctx); err != nil {
-			log.Printf("Warning: shutdown timeout waiting for webhooks: %v", err)
-		}
+		b.n8nClient.Shutdown(nil)
 	}
 
 	return b.session.Close()
