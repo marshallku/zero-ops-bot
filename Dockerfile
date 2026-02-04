@@ -14,7 +14,8 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 COPY --from=builder /app/bot .
-RUN chown nobody:nobody /app
+RUN mkdir -p /app/notes/daily /app/notes/categories && \
+    chown -R nobody:nobody /app
 
 USER nobody:nobody
 

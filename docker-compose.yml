@@ -5,6 +5,9 @@ services:
         restart: unless-stopped
         env_file:
             - .env
+        volumes:
+            - ./metadata.yaml:/app/metadata.yaml
+            - ./notes:/app/notes
         healthcheck:
             test: ["CMD", "pgrep", "-f", "bot"]
             interval: 30s
