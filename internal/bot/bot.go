@@ -63,7 +63,6 @@ func (b *Bot) Start() error {
 		Note:     noteHandler,
 		Schedule: scheduleHandler,
 	}))
-	b.session.AddHandler(handlers.NewMessageHandler(b.n8nClient, b.config.AllowedChannels))
 	b.session.AddHandler(handlers.NewMentionHandler(b.n8nClient, b.notes))
 
 	b.session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
