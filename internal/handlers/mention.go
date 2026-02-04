@@ -76,16 +76,10 @@ func NewMentionHandler(n8n *services.N8nClient, noteStore *notes.Store) func(s *
 			}
 		}
 
-		notesContext := ""
-		if noteStore != nil {
-			today := time.Now().Format("2006-01-02")
-			notesContext = fmt.Sprintf("\n\nNotes directory: %s\nToday's notes: daily/%s.md\nCategories directory: %s/categories/", noteStore.BaseDir(), today, noteStore.BaseDir())
-		}
-
 		analyzed, err := n8n.TriggerWebhookJSON(ctx, services.WebhookPayload{
 			Type:    "mention",
 			Command: "analyze",
-			Content: "Given the following system context and user message, determine the user's intent, select appropriate tools, and build a prompt to execute their request.\n\nSystem context:\n" + meta.SystemPrompt + notesContext + "\n\nUser message:\n" + content,
+			Content: "Given the following system context and user message, determine the user's intent, select appropriate tools, and build a prompt to execute their request.\n\nSystem context:\n" + meta.SystemPrompt + "\n\nUser message:\n" + content,
 			UserID:    m.Author.ID,
 			UserName:  m.Author.Username,
 			ChannelID: m.ChannelID,
@@ -106,10 +100,16 @@ func NewMentionHandler(n8n *services.N8nClient, noteStore *notes.Store) func(s *
 			return
 		}
 
+		executionContent := analyzed.Content
+		if noteStore != nil {
+			today := time.Now().Format("2006-01-02")
+			executionContent += fmt.Sprintf("\n\nNotes directory: %s\nToday's notes: daily/%s.md\nCategories directory: %s/categories/", noteStore.BaseDir(), today, noteStore.BaseDir())
+		}
+
 		result, err := n8n.TriggerWebhook(ctx, services.WebhookPayload{
 			Type:      "mention",
 			Command:   analyzed.Command,
-			Content:   analyzed.Content,
+			Content:   executionContent,
 			UserID:    m.Author.ID,
 			UserName:  m.Author.Username,
 			ChannelID: m.ChannelID,
