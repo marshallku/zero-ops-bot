@@ -28,6 +28,10 @@ func NewStore(baseDir string) (*Store, error) {
 	return &Store{baseDir: baseDir}, nil
 }
 
+func (s *Store) BaseDir() string {
+	return s.baseDir
+}
+
 func (s *Store) Add(text, category string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

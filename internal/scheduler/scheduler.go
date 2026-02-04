@@ -107,15 +107,9 @@ func (s *Scheduler) run(schedule metadata.Schedule) {
 		}
 	}
 
-	var notesContent string
 	if schedule.IncludeNotes && s.notes != nil {
-		recent, err := s.notes.GetRecent(7)
-		if err != nil {
-			log.Printf("Schedule %s: failed to get recent notes: %v", schedule.Name, err)
-		} else if recent != "" {
-			notesContent = recent
-			content += "\n\n## Recent Notes\n" + recent
-		}
+		today := time.Now().Format("2006-01-02")
+		content += fmt.Sprintf("\n\n## Notes\nNotes directory: %s\nToday's notes: daily/%s.md", s.notes.BaseDir(), today)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -127,7 +121,6 @@ func (s *Scheduler) run(schedule metadata.Schedule) {
 		ChannelID: schedule.ChannelID,
 		Content:   content,
 		Repos:     repos,
-		Notes:     notesContent,
 	})
 	if err != nil {
 		log.Printf("Schedule %s webhook failed: %v", schedule.Name, err)
