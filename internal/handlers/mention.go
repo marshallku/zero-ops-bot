@@ -2,18 +2,27 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/marshall/zero-ops-bot/internal/metadata"
+	"github.com/marshall/zero-ops-bot/internal/notes"
 	"github.com/marshall/zero-ops-bot/internal/services"
 	"github.com/marshall/zero-ops-bot/internal/state"
 	"github.com/marshall/zero-ops-bot/internal/utils"
 )
 
-func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *discordgo.MessageCreate) {
+type noteAction struct {
+	Action   string `json:"action"`
+	Text     string `json:"text"`
+	Category string `json:"category"`
+}
+
+func NewMentionHandler(n8n *services.N8nClient, noteStore *notes.Store) func(s *discordgo.Session, m *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if m.Author.Bot {
 			return
@@ -86,6 +95,11 @@ func NewMentionHandler(n8n *services.N8nClient) func(s *discordgo.Session, m *di
 			return
 		}
 
+		if analyzed.Command == "note" && noteStore != nil {
+			handleNoteAction(s, m, threadID, analyzed.Content, noteStore)
+			return
+		}
+
 		result, err := n8n.TriggerWebhook(ctx, services.WebhookPayload{
 			Type:      "mention",
 			Command:   analyzed.Command,
@@ -130,4 +144,39 @@ func stripMention(s *discordgo.Session, content string) string {
 	content = strings.ReplaceAll(content, "<@"+botID+">", "")
 	content = strings.ReplaceAll(content, "<@!"+botID+">", "")
 	return strings.TrimSpace(content)
+}
+
+func handleNoteAction(s *discordgo.Session, m *discordgo.MessageCreate, threadID, content string, store *notes.Store) {
+	var action noteAction
+	if err := json.Unmarshal([]byte(content), &action); err != nil {
+		log.Printf("Failed to parse note action: %v", err)
+		s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
+		s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
+		s.ChannelMessageSend(threadID, "Sorry, I couldn't understand the note request.")
+		return
+	}
+
+	switch action.Action {
+	case "add":
+		if err := store.Add(action.Text, action.Category); err != nil {
+			s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
+			s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
+			s.ChannelMessageSend(threadID, "Failed to save note: "+err.Error())
+			return
+		}
+
+		s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
+		s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+
+		label := "daily"
+		if action.Category != "" && action.Category != "daily" {
+			label = action.Category
+		}
+		s.ChannelMessageSend(threadID, fmt.Sprintf("Got it, noted in **%s**: %s", label, action.Text))
+
+	default:
+		s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
+		s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
+		s.ChannelMessageSend(threadID, "Unknown note action: "+action.Action)
+	}
 }
