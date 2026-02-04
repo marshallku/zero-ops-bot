@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -129,12 +130,47 @@ func (c *N8nClient) TriggerWebhookJSON(ctx context.Context, payload WebhookPaylo
 		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	cleaned := extractJSON(string(respBody))
+
 	var result AnalyzeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
+	if err := json.Unmarshal([]byte(cleaned), &result); err != nil {
+		// n8n returned plain text instead of JSON — treat as chat
+		return &AnalyzeResponse{
+			Command: "chat",
+			Content: string(respBody),
+		}, nil
 	}
 
 	return &result, nil
+}
+
+func extractJSON(s string) string {
+	s = strings.TrimSpace(s)
+
+	// Strip markdown code fences
+	if strings.HasPrefix(s, "```") {
+		if idx := strings.Index(s, "\n"); idx != -1 {
+			s = s[idx+1:]
+		}
+		if idx := strings.LastIndex(s, "```"); idx != -1 {
+			s = s[:idx]
+		}
+		return strings.TrimSpace(s)
+	}
+
+	// Extract first JSON object from mixed text
+	start := strings.Index(s, "{")
+	end := strings.LastIndex(s, "}")
+	if start != -1 && end != -1 && end > start {
+		return s[start : end+1]
+	}
+
+	return s
 }
 
 func (c *N8nClient) TriggerWebhookAsync(payload WebhookPayload) {
