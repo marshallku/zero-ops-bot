@@ -4,19 +4,18 @@ import (
 	"errors"
 	"os"
 	"strings"
-	"time"
 )
 
 type Config struct {
-	DiscordToken       string
-	DiscordAppID       string
-	DiscordGuildID     string
-	N8nWebhookURL      string
-	N8nWebhookSecret   string
-	AllowedChannels    []string
-	MetadataPath       string
-	HeartbeatChannelID string
-	HeartbeatInterval  time.Duration
+	DiscordToken     string
+	DiscordAppID     string
+	DiscordGuildID   string
+	N8nWebhookURL    string
+	N8nWebhookSecret string
+	AllowedChannels  []string
+	MetadataPath     string
+	Timezone         string
+	NotesDir         string
 }
 
 func Load() (*Config, error) {
@@ -49,24 +48,25 @@ func Load() (*Config, error) {
 		metadataPath = "metadata.yaml"
 	}
 
-	heartbeatInterval := time.Hour
-	if raw := os.Getenv("HEARTBEAT_INTERVAL"); raw != "" {
-		parsed, err := time.ParseDuration(raw)
-		if err != nil {
-			return nil, errors.New("HEARTBEAT_INTERVAL must be a valid duration (e.g. 1h, 30m)")
-		}
-		heartbeatInterval = parsed
+	timezone := os.Getenv("TZ")
+	if timezone == "" {
+		timezone = "Local"
+	}
+
+	notesDir := os.Getenv("NOTES_DIR")
+	if notesDir == "" {
+		notesDir = "./notes"
 	}
 
 	return &Config{
-		DiscordToken:       token,
-		DiscordAppID:       appID,
-		DiscordGuildID:     os.Getenv("DISCORD_GUILD_ID"),
-		N8nWebhookURL:      webhookURL,
-		N8nWebhookSecret:   os.Getenv("N8N_WEBHOOK_SECRET"),
-		AllowedChannels:    allowedChannels,
-		MetadataPath:       metadataPath,
-		HeartbeatChannelID: os.Getenv("HEARTBEAT_CHANNEL_ID"),
-		HeartbeatInterval:  heartbeatInterval,
+		DiscordToken:     token,
+		DiscordAppID:     appID,
+		DiscordGuildID:   os.Getenv("DISCORD_GUILD_ID"),
+		N8nWebhookURL:    webhookURL,
+		N8nWebhookSecret: os.Getenv("N8N_WEBHOOK_SECRET"),
+		AllowedChannels:  allowedChannels,
+		MetadataPath:     metadataPath,
+		Timezone:         timezone,
+		NotesDir:         notesDir,
 	}, nil
 }
