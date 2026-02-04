@@ -13,10 +13,20 @@ type Repo struct {
 	Path        string `yaml:"path" json:"path"`
 }
 
+type Schedule struct {
+	Name         string `yaml:"name" json:"name"`
+	Cron         string `yaml:"cron" json:"cron"`
+	ChannelID    string `yaml:"channel_id" json:"channel_id"`
+	Command      string `yaml:"command" json:"command"`
+	Prompt       string `yaml:"prompt" json:"prompt"`
+	IncludeNotes bool   `yaml:"include_notes" json:"include_notes"`
+	IncludeRepos bool   `yaml:"include_repos" json:"include_repos"`
+}
+
 type Metadata struct {
-	SystemPrompt    string `yaml:"system_prompt" json:"system_prompt"`
-	HeartbeatPrompt string `yaml:"heartbeat_prompt" json:"heartbeat_prompt"`
-	Repos           []Repo `yaml:"repos" json:"repos"`
+	SystemPrompt string     `yaml:"system_prompt" json:"system_prompt"`
+	Schedules    []Schedule `yaml:"schedules" json:"schedules"`
+	Repos        []Repo     `yaml:"repos" json:"repos"`
 }
 
 var (
@@ -34,9 +44,9 @@ func Load(path string) error {
 	file, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		data = Metadata{
-			SystemPrompt:    defaultSystemPrompt,
-			HeartbeatPrompt: defaultHeartbeatPrompt,
-			Repos:           []Repo{},
+			SystemPrompt: defaultSystemPrompt,
+			Schedules:    []Schedule{},
+			Repos:        []Repo{},
 		}
 		return Save()
 	}
@@ -96,12 +106,52 @@ func ListRepos() []Repo {
 	return data.Repos
 }
 
+func AddSchedule(schedule Schedule) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	for i, s := range data.Schedules {
+		if s.Name == schedule.Name {
+			data.Schedules[i] = schedule
+			return Save()
+		}
+	}
+
+	data.Schedules = append(data.Schedules, schedule)
+	return Save()
+}
+
+func RemoveSchedule(name string) bool {
+	mu.Lock()
+	defer mu.Unlock()
+
+	for i, s := range data.Schedules {
+		if s.Name == name {
+			data.Schedules = append(data.Schedules[:i], data.Schedules[i+1:]...)
+			Save()
+			return true
+		}
+	}
+	return false
+}
+
+func ListSchedules() []Schedule {
+	mu.RLock()
+	defer mu.RUnlock()
+	return data.Schedules
+}
+
 const defaultSystemPrompt = `You are a homelab assistant. Classify the user's message and route it to the appropriate workflow.
 
 ## Available Workflows
 - "infra" — Server infrastructure tasks (deploy, restart, status, logs, docker, kubectl)
 - "health" — Health checks (uptime, disk, memory, CPU, connectivity)
+- "note" — Remember or store information. Respond with JSON: {"command": "note", "content": "{\"action\":\"add\",\"text\":\"...\",\"category\":\"daily\"}"}
 - "chat" — General conversation, questions, or anything that doesn't match above
+
+## Note Detection
+When the user says things like "remember ...", "note that ...", "don't forget ...", "save this ...", classify as "note".
+Extract the core information into "text" and pick an appropriate category (default "daily").
 
 ## Available Repositories
 Repositories are provided in the payload with name, description, and filesystem path. Use this context when the user references a project or codebase.
@@ -113,27 +163,5 @@ Repositories are provided in the payload with name, description, and filesystem 
 
 ## Response Format
 Respond with JSON only:
-{"command": "<infra|health|chat>", "reasoning": "<brief explanation>"}
-`
-
-const defaultHeartbeatPrompt = `You are a proactive homelab maintenance assistant running on a periodic heartbeat.
-
-Perform the following checks and report ONLY if there are actionable findings. If everything is normal, return an empty response.
-
-## 1. Repository Review
-For each registered repository:
-- Check for recent commits and summarize notable changes
-- Identify potential enhancements (outdated dependencies, missing tests, TODOs in code)
-- Flag any open issues or stale pull requests
-
-## 2. Infrastructure Health
-- Run "docker ps -a" and report containers that are exited, restarting, or unhealthy
-- Run "kubectl get pods --all-namespaces" and report pods not in Running/Completed state
-- Flag any container or pod with restart count > 3
-
-## Response Rules
-- Keep it concise. Use bullet points.
-- Group findings by category (Repos / Docker / Kubernetes).
-- Prefix severity: 🔴 Critical, 🟡 Warning, 🔵 Info
-- If nothing to report, return an empty response (no message at all).
+{"command": "<infra|health|note|chat>", "content": "<routed prompt or JSON for note>"}
 `
