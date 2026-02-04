@@ -36,7 +36,8 @@ type WebhookPayload struct {
 	SessionID    string     `json:"session_id,omitempty"`
 	Timestamp    string     `json:"timestamp"`
 	Source string     `json:"source"`
-	Repos  []RepoMeta `json:"repos,omitempty"`
+	Repos []RepoMeta `json:"repos,omitempty"`
+	Notes string     `json:"notes,omitempty"`
 }
 
 type WebhookResponse struct {
