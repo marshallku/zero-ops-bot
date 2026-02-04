@@ -162,7 +162,9 @@ func isMentioned(s *discordgo.Session, m *discordgo.MessageCreate) bool {
 			return true
 		}
 	}
-	return false
+
+	botID := s.State.User.ID
+	return strings.Contains(m.Content, "<@"+botID+">") || strings.Contains(m.Content, "<@!"+botID+">")
 }
 
 func stripMention(s *discordgo.Session, content string) string {
