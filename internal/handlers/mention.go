@@ -65,7 +65,7 @@ func NewMentionHandler(n8n *services.N8nClient, noteStore *notes.Store) func(s *
 
 		sessionID := state.ThreadIDToSessionID(threadID)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 
 		meta := metadata.Get()
