@@ -41,7 +41,9 @@ func NewMentionHandler(n8n *services.N8nClient, noteStore *notes.Store) func(s *
 			return
 		}
 
-		s.MessageReactionAdd(m.ChannelID, m.ID, "👀")
+		if err := s.MessageReactionAdd(m.ChannelID, m.ID, "👀"); err != nil {
+			log.Printf("Failed to add reaction: %v", err)
+		}
 
 		var threadID string
 		if channel.IsThread() {
@@ -76,10 +78,21 @@ func NewMentionHandler(n8n *services.N8nClient, noteStore *notes.Store) func(s *
 			}
 		}
 
+		analyzePrompt := "You are a message classifier. Do NOT answer the user's question. Do NOT provide information. Your ONLY job is to read the message and output a JSON routing decision.\n\n" +
+			"=== SYSTEM CONTEXT ===\n" + meta.SystemPrompt + "\n=== END SYSTEM CONTEXT ===\n\n" +
+			"=== USER MESSAGE ===\n" + content + "\n=== END USER MESSAGE ===\n\n" +
+			"Based on the system context above, classify the user message into one of the available workflows.\n\n" +
+			"Rules for the \"content\" field:\n" +
+			"- For infra/health/chat: write a prompt or instruction for the execution step to carry out. Do NOT answer the question yourself.\n" +
+			"- For note: write a JSON action object like {\"action\":\"add\",\"text\":\"...\",\"category\":\"daily\"}\n" +
+			"- For reject: write a brief, friendly message explaining why you can't help (this is sent directly to the user).\n\n" +
+			"Respond with raw JSON only. No markdown code fences. No explanation.\n" +
+			"{\"command\": \"<command>\", \"content\": \"<see rules above>\"}"
+
 		analyzed, err := n8n.TriggerWebhookJSON(ctx, services.WebhookPayload{
 			Type:    "mention",
 			Command: "analyze",
-			Content: "Given the following system context and user message, determine the user's intent, select appropriate tools, and build a prompt to execute their request.\n\nSystem context:\n" + meta.SystemPrompt + "\n\nUser message:\n" + content,
+			Content: analyzePrompt,
 			UserID:    m.Author.ID,
 			UserName:  m.Author.Username,
 			ChannelID: m.ChannelID,
@@ -97,6 +110,13 @@ func NewMentionHandler(n8n *services.N8nClient, noteStore *notes.Store) func(s *
 
 		if analyzed.Command == "note" && noteStore != nil {
 			handleNoteAction(s, m, threadID, analyzed.Content, noteStore)
+			return
+		}
+
+		if analyzed.Command == "reject" {
+			s.MessageReactionRemove(m.ChannelID, m.ID, "👀", s.State.User.ID)
+			s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
+			s.ChannelMessageSend(threadID, analyzed.Content)
 			return
 		}
 

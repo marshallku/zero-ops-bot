@@ -139,10 +139,10 @@ func (c *N8nClient) TriggerWebhookJSON(ctx context.Context, payload WebhookPaylo
 
 	var result AnalyzeResponse
 	if err := json.Unmarshal([]byte(cleaned), &result); err != nil {
-		// n8n returned plain text instead of JSON — treat as chat
+		// n8n returned plain text instead of JSON — reject to avoid broken execution
 		return &AnalyzeResponse{
-			Command: "chat",
-			Content: string(respBody),
+			Command: "reject",
+			Content: "Sorry, I couldn't process that request. Please try again.",
 		}, nil
 	}
 
